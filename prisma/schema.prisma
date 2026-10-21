@@ -1,0 +1,59 @@
+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chatMembers ChatMember[]
+
+  @@map("users")
+}
+
+model Chat {
+  id        String   @id @default(uuid())
+  type      ChatType @default(ONE_TO_ONE)
+  name      String? // null for 1:1, required for group
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members ChatMember[]
+
+  @@map("chats")
+}
+
+model ChatMember {
+  id       String         @id @default(uuid())
+  chatId   String
+  userId   String
+  role     ChatMemberRole @default(MEMBER)
+  joinedAt DateTime       @default(now())
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([chatId, userId]) // One user per chat only once
+  @@map("chat_members")
+}
+
+enum ChatType {
+  ONE_TO_ONE
+  GROUP
+}
+
+enum ChatMemberRole {
+  ADMIN
+  MEMBER
+}
