@@ -251,31 +251,4 @@ chat-backend/
 
 ---
 
-## ⚠️ Notes
 
-- **Auth is out of scope** in this blueprint: callers pass `senderId` / `userId` in the body.
-  In production, put JWT auth in front and derive the user from the token instead of the body.
-- **No Firestore composite index needed right now** — `getMessages` uses only
-  `orderBy('timestamp','desc')`, which is served by Firestore's automatic single-field
-  index. Soft-deleted messages are filtered in memory.
-  - Trade-off: a page may return slightly fewer than `limit` messages when some are
-    deleted (cursor still advances correctly, so pagination never skips messages).
-  - Future optimization: create the composite index from `firestore.indexes.json`
-    (`messages`: `deleted ASC, timestamp DESC`) and switch `getMessages` back to
-    `.where('deleted','==',false).orderBy('timestamp','desc')` to filter in the query.
-  - `readReceipts` / `lastSeen` use point reads and small fetches → no indexes needed.
-- **First boot fails fast** until a real `firebase-service-account.json` (or inline
-  credentials) is configured — by design.
-- Bonus endpoints beyond the core spec: `POST /user/create`,
-  `GET .../message/:messageId/receipts`, `GET .../lastseen`, cursor pagination.
-
-### Troubleshooting
-
-- `FATAL: the database system is in recovery mode` → your local PostgreSQL is finishing
-  crash recovery (or stuck). Restart the `postgresql-x64-18` Windows service, then re-run
-  `npm run prisma:migrate`.
-- Prisma migration was **not applied yet** in this environment for that reason — run
-  `npm run prisma:migrate` once your DB is healthy.
-- `Firebase service account file not found` → put your real service account JSON at the
-  path in `FIREBASE_SERVICE_ACCOUNT_PATH`, or switch to inline credentials (Option B in
-  `.env.example`).
